@@ -1,0 +1,42 @@
+FROM php:7.1-fpm
+
+RUN apt-get update && apt-get install -y \
+    libmcrypt-dev mysql-client \
+    supervisor \
+    zip \
+    unzip \
+    git \
+    libfreetype6-dev \
+    libjpeg62-turbo-dev \
+    libmcrypt-dev \
+    libpng-dev \
+    libicu-dev \
+    libpq-dev \
+    zlib1g-dev
+
+RUN docker-php-ext-install pdo pdo_pgsql pgsql zip gd pcntl bcmath opcache
+
+# Install Composer and make it available in the PATH
+RUN curl -sS https://getcomposer.org/installer | \
+    php -- --install-dir=/usr/bin/ --filename=composer
+
+# Install xdebug
+RUN yes | pecl install xdebug \
+    && echo "zend_extension=$(find /usr/local/lib/php/extensions/ -name xdebug.so)" > /usr/local/etc/php/conf.d/xdebug.ini \
+    && echo "xdebug.remote_enable=1" >> /usr/local/etc/php/conf.d/xdebug.ini \
+    && echo "xdebug.remote_autostart=0" >> /usr/local/etc/php/conf.d/xdebug.ini \
+    && echo "xdebug.idekey=PHPSTORM" >> /usr/local/etc/php/conf.d/xdebug.ini \
+    && echo "xdebug.remote_host=docker.for.mac.localhost" >> /usr/local/etc/php/conf.d/xdebug.ini \
+    && echo "xdebug.remote_port=9000" >> /usr/local/etc/php/conf.d/xdebug.ini \
+    && echo "xdebug.remote_cookie_expire_time = 0" >> /usr/local/etc/php/conf.d/xdebug.ini \
+    && echo "xdebug.profiler_enable = 0" >> /usr/local/etc/php/conf.d/xdebug.ini \
+    && echo "xdebug.profiler_enable_trigger = 1" >> /usr/local/etc/php/conf.d/xdebug.ini \
+    && echo "xdebug.profiler_output_dir ="/var/www"" >> /usr/local/etc/php/conf.d/xdebug.ini \
+    && echo "xdebug.default_enable = 0" >> /usr/local/etc/php/conf.d/xdebug.ini
+
+
+# Add ssh keys and assign proper permissions
+COPY docker/ssh-keys/ /root/.ssh/
+RUN chmod 400 ~/.ssh/id_rsa
+
+WORKDIR /var/www
