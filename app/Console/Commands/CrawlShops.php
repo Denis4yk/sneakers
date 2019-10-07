@@ -2,6 +2,8 @@
 
 namespace App\Console\Commands;
 
+use App\ChromeDriver;
+use Facebook\WebDriver\WebDriverBy;
 use GuzzleHttp\Client;
 use Illuminate\Console\Command;
 use League\Csv\Writer;
@@ -33,11 +35,13 @@ class CrawlShops extends Command
      */
     public function handle(Client $client, Dom $parser)
     {
+        // everysize
         $eversizePrices = $parser->load(
             $client->get('https://www.everysize.com/adidas-originals-superstar-foundation-sneaker-c77154.html')
                    ->getBody(true)
         )->find('#shops-scroller .info .price');
 
+        //sneakerjagers
         $sneakerjagersPircesRaw = $parser->load(
             $client->get('https://www.sneakerjagers.com/de/de_de/sneaker/adidas-superstar-junior-sneakers/76978')
                    ->getBody(true)
@@ -46,12 +50,16 @@ class CrawlShops extends Command
             return str_contains($item->innerHtml(), '<del>');
         })->values();
 
-        //$sneakers123Pirces = $parser->load(
-        //    $client->get('https://sneakers123.com/adidas-superstar-foundation-c77154')
-        //           ->getBody(true)
-        //)
-        //->find('#shops-list .shop-price-section');
+        //sneakers123
+        $driver = (new ChromeDriver())->getDriver(false, __FUNCTION__, null, false);
+        $driver->get('https://sneakers123.com/adidas-superstar-foundation-c77154');
 
+        $sneakers123Count       = (int)$this->parse_float($driver->findElement(
+            WebDriverBy::cssSelector('#shops-list h3')
+        )->getText());
+        $sneakers123LowestPrice = $this->parse_float($driver->findElement(
+            WebDriverBy::cssSelector('h2.product-name')
+        )->getText());
 
         $results = [
             'brand' => 'adidas',
@@ -64,8 +72,8 @@ class CrawlShops extends Command
                     'shopsCount' => $eversizePrices->count(),
                 ],
                 'sneakers123'   => [
-                    'lowest'     => '',
-                    'shopsCount' => '',
+                    'lowest'     => $sneakers123LowestPrice,
+                    'shopsCount' => $sneakers123Count,
                 ],
                 'sneakerjagers' => [
                     'lowest'     =>
@@ -95,9 +103,7 @@ class CrawlShops extends Command
             ]
         );
 
-        $some = 'else';
-        $else = $some;
-        dd('hi');
+        dd('Finished');
     }
 
 

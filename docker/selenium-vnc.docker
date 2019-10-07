@@ -1,0 +1,6 @@
+FROM selenium/standalone-chrome-debug:3.12.0-cobalt
+
+RUN mkdir /home/seluser/Downloads
+RUN mkdir /home/seluser/Downloads/frames
+
+RUN chmod -R 777 /home/seluser/Downloads
