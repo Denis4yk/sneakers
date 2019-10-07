@@ -25,6 +25,9 @@ class CrawlShops extends Command
      */
     protected $description = 'Crawl specified shops.';
 
+    private const EVERYSIZE_LINK     = 'https://www.everysize.com/adidas-originals-superstar-foundation-sneaker-c77154.html';
+    private const SNEAKERJAGERS_LINK = 'https://www.sneakerjagers.com/de/de_de/sneaker/adidas-superstar-junior-sneakers/76978';
+
     /**
      * Execute the console command.
      *
@@ -35,22 +38,27 @@ class CrawlShops extends Command
      */
     public function handle(Client $client, Dom $parser)
     {
+        //
         // everysize
+        //
         $eversizePrices = $parser->load(
-            $client->get('https://www.everysize.com/adidas-originals-superstar-foundation-sneaker-c77154.html')
-                   ->getBody(true)
+            $client->get(self::EVERYSIZE_LINK)->getBody(true)
         )->find('#shops-scroller .info .price');
 
+        //
         //sneakerjagers
-        $sneakerjagersPircesRaw = $parser->load(
-            $client->get('https://www.sneakerjagers.com/de/de_de/sneaker/adidas-superstar-junior-sneakers/76978')
-                   ->getBody(true)
+        //
+        $sneakerjagersPricesRaw = $parser->load(
+            $client->get(self::SNEAKERJAGERS_LINK)->getBody(true)
         )->find('.sneaker-content .container .column')[1]->find('.column.is-1.is-paddingless.has-text-right.is-size-7 span');
-        $sneakerjagersPirces    = collect($sneakerjagersPircesRaw)->reject(function ($item) {
+
+        $sneakerjagersPrices    = collect($sneakerjagersPricesRaw)->reject(function ($item) {
             return str_contains($item->innerHtml(), '<del>');
         })->values();
 
+        //
         //sneakers123
+        //
         $driver = (new ChromeDriver())->getDriver(false, __FUNCTION__, null, false);
         $driver->get('https://sneakers123.com/adidas-superstar-foundation-c77154');
 
@@ -61,9 +69,10 @@ class CrawlShops extends Command
             WebDriverBy::cssSelector('h2.product-name')
         )->getText());
 
+        //
+        // Output
+        //
         $results = [
-            'brand' => 'adidas',
-            'sku'   => 'C77154',
             'shops' => [
                 'everysize'     => [
                     'lowest'     => collect($eversizePrices->toArray())->map(function ($item) {
@@ -77,12 +86,12 @@ class CrawlShops extends Command
                 ],
                 'sneakerjagers' => [
                     'lowest'     =>
-                        $sneakerjagersPirces->map(function ($item) {
+                        $sneakerjagersPrices->map(function ($item) {
                             $some = 'else';
                             $else = $some;
                             return $this->parse_float($item->text);
                         })->min(),
-                    'shopsCount' => $sneakerjagersPirces->count(),
+                    'shopsCount' => $sneakerjagersPrices->count(),
                 ],
             ],
 
